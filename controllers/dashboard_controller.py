@@ -1,17 +1,18 @@
 from flask import jsonify, request
-from data import appointments, professionals
+from models.models import Appointment, Professional
 
 def get_appointments():
     email = request.args.get("user")
-
-    user = next((p for p in professionals if p["email"] == email), None)
-
+    
+    user = Professional.query.filter_by(email=email).first()
     if not user:
-        return jsonify({"error": "usuario no encontrado"}), 404
-
-    if user["role"] == "admin":
-        result = appointments
+        return jsonify({"error": "Usuario no encontrado"}), 404
+    
+    if user.role == "admin":
+        appointments = Appointment.query.all()
     else:
-        result = [a for a in appointments if a["professionId"] == user["id"]]
-
-    return jsonify(result)
+        appointments = Appointment.query.filter_by(
+            professional_id=user.id
+        ).all()
+    
+    return jsonify([a.to_dict() for a in appointments]), 200
