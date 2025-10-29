@@ -1,0 +1,28 @@
+# Entorno virtual
+venv/
+ENV/
+env/
+
+# Configuración sensible
+.env
+*.key
+*.pem
+
+# Compilados Python
+*.pyc
+__pycache__/
+
+# SQLite (si alguna vez se usa local)
+*.db
+*.sqlite3
+
+# Cachés
+.cache/
+*.log
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# VS Code settings
+.vscode/
