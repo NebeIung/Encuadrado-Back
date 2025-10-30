@@ -1,8 +1,7 @@
-import os
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
+import os
 
-# Cargar variables de entorno
 load_dotenv()
 
 from flask import Flask
@@ -11,284 +10,244 @@ from models.models import Professional, Patient, Specialty, Appointment, CenterC
 
 def init_database():
     """Inicializa la base de datos con datos de prueba"""
-    
-    # Crear app Flask temporal
     app = Flask(__name__)
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
+    
+    DATABASE_URL = os.getenv('DATABASE_URL')
+    if DATABASE_URL:
+        app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+        print(f"✓ Conectando a PostgreSQL: {DATABASE_URL.split('@')[1].split('/')[0]}")
+    else:
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///encuadrado.db'
+        print("⚠ Usando SQLite local (no hay DATABASE_URL en .env)")
+    
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     
-    # Inicializar DB
     db.init_app(app)
-
+    
     with app.app_context():
-        print("🔗 Conectado a:", app.config['SQLALCHEMY_DATABASE_URI'][:50] + "...")
-
-        try:
-            # Eliminar tablas existentes
-            print("🗑️  Eliminando tablas existentes...")
-            db.drop_all()
-            
-            # Crear todas las tablas
-            print("📦 Creando tablas...")
-            db.create_all()
-            
-            print("✅ Tablas creadas correctamente")
-            print("📝 Insertando datos de prueba...")
-
-            # 1. Configuración del centro
-            print("  → Configuración del centro...")
-            center = CenterConfig(
-                name="Centro Médico Cuad",
-                description="Centro de atención médica integral con profesionales especializados en distintas áreas de la salud.",
-                phone="+56912345678",
-                email="contacto@centrocuad.cl",
-                address="Av. Providencia 1234, Santiago",
-                open_time="09:00",
-                close_time="18:00"
-            )
-            db.session.add(center)
-            db.session.flush()
-
-            # 2. Especialidades
-            print("  → Especialidades...")
-            specialties = [
-                Specialty(
-                    name="Consulta General",
-                    description="Atención médica general para diagnóstico y tratamiento",
-                    duration=30,
-                    price=25000
-                ),
-                Specialty(
-                    name="Nutrición",
-                    description="Evaluación nutricional y planes alimenticios personalizados",
-                    duration=45,
-                    price=35000
-                ),
-                Specialty(
-                    name="Psicología",
-                    description="Atención psicológica individual para adultos y adolescentes",
-                    duration=60,
-                    price=40000
-                ),
-                Specialty(
-                    name="Kinesiología",
-                    description="Rehabilitación física y tratamiento de lesiones",
-                    duration=45,
-                    price=30000
-                ),
-                Specialty(
-                    name="Pediatría",
-                    description="Atención médica especializada para niños y adolescentes",
-                    duration=30,
-                    price=28000
-                )
-            ]
-            
-            for specialty in specialties:
-                db.session.add(specialty)
-            
-            db.session.flush()
-
-            # 3. Profesionales
-            print("  → Profesionales...")
-            admin = Professional(
-                name="Dr. Admin Principal",
-                email="admin@centro.com",
-                password="1234",
-                role="admin",
-                phone="+56987654321",
+        db.drop_all()
+        print("✓ Tablas eliminadas")
+        
+        db.create_all()
+        print("✓ Tablas creadas")
+        
+        # Crear especialidades
+        especialidades = [
+            Specialty(
+                name='Psicología',
+                description='Atención psicológica individual para diagnóstico y tratamiento',
+                duration=60,
+                price=50000,
+                color='#1976d2'
+            ),
+            Specialty(
+                name='Psiquiatría',
+                description='Evaluación psiquiátrica y seguimiento médico especializado',
+                duration=45,
+                price=70000,
+                color='#d32f2f'
+            ),
+            Specialty(
+                name='Terapia de Pareja',
+                description='Orientación y terapia para parejas',
+                duration=90,
+                price=80000,
+                color='#9c27b0'
+            ),
+            Specialty(
+                name='Terapia Familiar',
+                description='Terapia sistémica familiar',
+                duration=90,
+                price=75000,
+                color='#ed6c02'
+            ),
+            Specialty(
+                name='Neuropsicología',
+                description='Evaluación y rehabilitación neuropsicológica',
+                duration=60,
+                price=65000,
+                color='#2e7d32'
+            ),
+        ]
+        
+        for esp in especialidades:
+            db.session.add(esp)
+        db.session.commit()
+        print(f"✓ {len(especialidades)} especialidades creadas")
+        
+        from werkzeug.security import generate_password_hash
+        
+        # Horario estándar para Psicología (lunes a viernes)
+        horario_psicologia = {
+            "mon": {"enabled": True, "start": "09:00", "end": "18:00", "lunch_start": "13:00", "lunch_end": "14:00"},
+            "tue": {"enabled": True, "start": "09:00", "end": "18:00", "lunch_start": "13:00", "lunch_end": "14:00"},
+            "wed": {"enabled": True, "start": "09:00", "end": "18:00", "lunch_start": "13:00", "lunch_end": "14:00"},
+            "thu": {"enabled": True, "start": "09:00", "end": "18:00", "lunch_start": "13:00", "lunch_end": "14:00"},
+            "fri": {"enabled": True, "start": "09:00", "end": "18:00", "lunch_start": "13:00", "lunch_end": "14:00"},
+            "sat": {"enabled": False, "start": "", "end": "", "lunch_start": "", "lunch_end": ""},
+            "sun": {"enabled": False, "start": "", "end": "", "lunch_start": "", "lunch_end": ""}
+        }
+        
+        # Horario para Psiquiatría (incluye sábado)
+        horario_psiquiatria = {
+            "mon": {"enabled": True, "start": "10:00", "end": "17:00", "lunch_start": "13:00", "lunch_end": "14:00"},
+            "tue": {"enabled": True, "start": "10:00", "end": "17:00", "lunch_start": "13:00", "lunch_end": "14:00"},
+            "wed": {"enabled": True, "start": "10:00", "end": "17:00", "lunch_start": "13:00", "lunch_end": "14:00"},
+            "thu": {"enabled": True, "start": "10:00", "end": "17:00", "lunch_start": "13:00", "lunch_end": "14:00"},
+            "fri": {"enabled": True, "start": "10:00", "end": "17:00", "lunch_start": "13:00", "lunch_end": "14:00"},
+            "sat": {"enabled": True, "start": "09:00", "end": "13:00", "lunch_start": "", "lunch_end": ""},
+            "sun": {"enabled": False, "start": "", "end": "", "lunch_start": "", "lunch_end": ""}
+        }
+        
+        # Horario para Terapias (tardes)
+        horario_terapias = {
+            "mon": {"enabled": True, "start": "14:00", "end": "20:00", "lunch_start": "", "lunch_end": ""},
+            "tue": {"enabled": True, "start": "14:00", "end": "20:00", "lunch_start": "", "lunch_end": ""},
+            "wed": {"enabled": True, "start": "14:00", "end": "20:00", "lunch_start": "", "lunch_end": ""},
+            "thu": {"enabled": True, "start": "14:00", "end": "20:00", "lunch_start": "", "lunch_end": ""},
+            "fri": {"enabled": True, "start": "14:00", "end": "20:00", "lunch_start": "", "lunch_end": ""},
+            "sat": {"enabled": False, "start": "", "end": "", "lunch_start": "", "lunch_end": ""},
+            "sun": {"enabled": False, "start": "", "end": "", "lunch_start": "", "lunch_end": ""}
+        }
+        
+        profesionales = [
+            # Admin sin especialidades ni horarios
+            Professional(
+                name='Administrador Centro',
+                email='admin@centro.com',
+                password_hash=generate_password_hash('1234'),
+                role='admin',
+                schedule={}  # Admin no tiene horarios
+            ),
+            # Member con horarios por especialidad
+            Professional(
+                name='Juan Pérez',
+                email='juan@centro.com',
+                password_hash=generate_password_hash('1234'),
+                role='member',
                 schedule={
-                    "mon": ["09:00-13:00", "14:00-18:00"],
-                    "tue": ["09:00-13:00"],
-                    "wed": ["14:00-18:00"],
-                    "thu": ["09:00-13:00", "14:00-18:00"],
-                    "fri": ["09:00-18:00"],
-                    "sat": [],
-                    "sun": []
+                    "3": horario_terapias,  # Terapia de Pareja
+                    "4": horario_terapias,  # Terapia Familiar
                 }
-            )
-            admin.specialties.extend([specialties[0], specialties[4]])  # Consulta General y Pediatría
-            
-            juan = Professional(
-                name="Dr. Juan Pérez",
-                email="juan@centro.com",
-                password="1234",
-                role="member",
-                phone="+56912345678",
+            ),
+            # Limited con horarios por especialidad
+            Professional(
+                name='Ana García',
+                email='ana@centro.com',
+                password_hash=generate_password_hash('1234'),
+                role='limited',
                 schedule={
-                    "mon": ["14:00-18:00"],
-                    "tue": ["09:00-13:00", "14:00-18:00"],
-                    "wed": ["09:00-13:00"],
-                    "thu": ["09:00-13:00", "14:00-18:00"],
-                    "fri": [],
-                    "sat": [],
-                    "sun": []
+                    "1": horario_psicologia,    # Psicología
+                    "5": horario_psiquiatria,  # Neuropsicología (diferentes horarios)
                 }
-            )
-            juan.specialties.extend([specialties[2], specialties[1]])  # Psicología y Nutrición
-            
-            ana = Professional(
-                name="Dra. Ana García",
-                email="ana@centro.com",
-                password="1234",
-                role="limited",
-                phone="+56923456789",
-                schedule={
-                    "mon": [],
-                    "tue": ["09:00-18:00"],
-                    "wed": ["14:00-18:00"],
-                    "thu": [],
-                    "fri": ["09:00-18:00"],
-                    "sat": ["10:00-14:00"],
-                    "sun": []
-                }
-            )
-            ana.specialties.extend([specialties[3], specialties[1]])  # Kinesiología y Nutrición
-            
-            db.session.add_all([admin, juan, ana])
-            db.session.flush()
+            ),
+        ]
+        
+        for prof in profesionales:
+            db.session.add(prof)
+        db.session.commit()
+        print(f"✓ {len(profesionales)} profesionales creados")
+        
+        # Asignar especialidades (Admin NO tiene especialidades)
+        profesionales[1].specialties.extend([especialidades[2], especialidades[3]])  # Juan: Terapias
+        profesionales[2].specialties.extend([especialidades[0], especialidades[4]])  # Ana: Psicología y Neuro
+        db.session.commit()
+        print("✓ Especialidades asignadas a profesionales")
+        
+        # Crear pacientes
+        pacientes = [
+            Patient(
+                name='María López',
+                email='maria.lopez@email.com',
+                phone='+56912345678',
+                rut='12345678-9',
+                birth_date=datetime(1990, 5, 15)
+            ),
+            Patient(
+                name='Pedro Sánchez',
+                email='pedro.sanchez@email.com',
+                phone='+56923456789',
+                rut='23456789-0',
+                birth_date=datetime(1985, 8, 20)
+            ),
+            Patient(
+                name='Laura Fernández',
+                email='laura.fernandez@email.com',
+                phone='+56934567890',
+                rut='34567890-1',
+                birth_date=datetime(1992, 3, 10)
+            ),
+            Patient(
+                name='Roberto Torres',
+                email='roberto.torres@email.com',
+                phone='+56945678901',
+                rut='45678901-2',
+                birth_date=datetime(1988, 11, 25)
+            ),
+        ]
+        
+        for paciente in pacientes:
+            db.session.add(paciente)
+        db.session.commit()
+        print(f"✓ {len(pacientes)} pacientes creados")
+        
+        # Crear citas de ejemplo
+        hoy = datetime.now().replace(hour=15, minute=0, second=0, microsecond=0)
+        
+        citas = [
+            # Citas para Juan (Terapias en horario de tarde)
+            Appointment(
+                patient_id=pacientes[0].id,
+                professional_id=profesionales[1].id,
+                specialty_id=especialidades[2].id,  # Terapia de Pareja
+                date=hoy,
+                status='confirmed',
+                notes='Terapia de pareja - Sesión 3'
+            ),
+            # Citas para Ana (Psicología en horario de mañana)
+            Appointment(
+                patient_id=pacientes[1].id,
+                professional_id=profesionales[2].id,
+                specialty_id=especialidades[0].id,  # Psicología
+                date=hoy.replace(hour=10),
+                status='confirmed',
+                notes='Primera consulta psicológica'
+            ),
+        ]
+        
+        for cita in citas:
+            db.session.add(cita)
+        db.session.commit()
+        print(f"✓ {len(citas)} citas creadas")
+        
+        # Crear configuración del centro
+        config = CenterConfig(
+            name='Centro de Salud Mental Encuadrado',
+            address='Av. Principal 123, Santiago',
+            phone='+56912345678',
+            email='contacto@encuadrado.cl',
+            description='Centro especializado en salud mental y bienestar psicológico'
+        )
+        db.session.add(config)
+        db.session.commit()
+        print("✓ Configuración del centro creada")
+        
+        print("\n" + "="*50)
+        print("✓ Base de datos inicializada correctamente")
+        print(f"✓ Base de datos: {'PostgreSQL (Aiven)' if DATABASE_URL else 'SQLite Local'}")
+        print("="*50)
+        print("\nCredenciales de acceso:")
+        print("  Admin (sin especialidades):")
+        print("    Email: admin@centro.com")
+        print("    Password: 1234")
+        print("\n  Member (Terapias tardes):")
+        print("    Email: juan@centro.com")
+        print("    Password: 1234")
+        print("\n  Limited (Psicología/Neuro):")
+        print("    Email: ana@centro.com")
+        print("    Password: 1234")
+        print("="*50)
 
-            # 4. Pacientes
-            print("  → Pacientes...")
-            patients = [
-                Patient(
-                    name="Diego Pérez",
-                    email="diego@email.com",
-                    phone="+56934567890",
-                    rut="12345678-9",
-                    birth_date=datetime(1990, 5, 15).date(),
-                    address="Las Condes, Santiago",
-                    emergency_contact="María Pérez",
-                    emergency_phone="+56945678901"
-                ),
-                Patient(
-                    name="María Torres",
-                    email="maria@email.com",
-                    phone="+56956789012",
-                    rut="23456789-0",
-                    birth_date=datetime(1985, 8, 22).date(),
-                    address="Providencia, Santiago"
-                ),
-                Patient(
-                    name="Claudia Soto",
-                    email="claudia@email.com",
-                    phone="+56967890123",
-                    rut="34567890-1",
-                    birth_date=datetime(1992, 3, 10).date(),
-                    address="Ñuñoa, Santiago",
-                    notes="Alérgica a la penicilina"
-                ),
-                Patient(
-                    name="Roberto Muñoz",
-                    email="roberto@email.com",
-                    phone="+56978901234",
-                    rut="45678901-2",
-                    birth_date=datetime(1978, 11, 5).date(),
-                    address="Vitacura, Santiago"
-                ),
-                Patient(
-                    name="Carolina López",
-                    email="carolina@email.com",
-                    phone="+56989012345",
-                    rut="56789012-3",
-                    birth_date=datetime(1995, 1, 28).date(),
-                    address="La Reina, Santiago"
-                )
-            ]
-            
-            for patient in patients:
-                db.session.add(patient)
-            
-            db.session.flush()
-
-            # 5. Citas
-            print("  → Citas...")
-            today = datetime.now()
-            
-            appointments = [
-                # Citas pasadas (completadas)
-                Appointment(
-                    patient_id=patients[0].id,
-                    professional_id=juan.id,
-                    specialty_id=specialties[2].id,  # Psicología
-                    date=today - timedelta(days=5, hours=-10),
-                    status="completed",
-                    notes="Primera sesión completada exitosamente"
-                ),
-                Appointment(
-                    patient_id=patients[1].id,
-                    professional_id=admin.id,
-                    specialty_id=specialties[0].id,  # Consulta General
-                    date=today - timedelta(days=3, hours=-15),
-                    status="completed"
-                ),
-                
-                # Citas futuras (confirmadas)
-                Appointment(
-                    patient_id=patients[2].id,
-                    professional_id=ana.id,
-                    specialty_id=specialties[3].id,  # Kinesiología
-                    date=today + timedelta(days=1, hours=10),
-                    status="confirmed",
-                    notes="Sesión de rehabilitación post-operatoria"
-                ),
-                Appointment(
-                    patient_id=patients[0].id,
-                    professional_id=juan.id,
-                    specialty_id=specialties[2].id,  # Psicología
-                    date=today + timedelta(days=2, hours=14),
-                    status="confirmed"
-                ),
-                Appointment(
-                    patient_id=patients[3].id,
-                    professional_id=admin.id,
-                    specialty_id=specialties[4].id,  # Pediatría
-                    date=today + timedelta(days=3, hours=11),
-                    status="confirmed"
-                ),
-                Appointment(
-                    patient_id=patients[4].id,
-                    professional_id=juan.id,
-                    specialty_id=specialties[1].id,  # Nutrición
-                    date=today + timedelta(days=5, hours=16),
-                    status="confirmed"
-                ),
-                
-                # Cita cancelada
-                Appointment(
-                    patient_id=patients[1].id,
-                    professional_id=ana.id,
-                    specialty_id=specialties[1].id,  # Nutrición
-                    date=today + timedelta(days=7, hours=9),
-                    status="cancelled",
-                    cancellation_reason="Paciente enfermo, reagendar"
-                )
-            ]
-            
-            for appointment in appointments:
-                db.session.add(appointment)
-            
-            # Commit final
-            db.session.commit()
-            
-            print("\n✅ Base de datos inicializada exitosamente!")
-            print(f"   📊 {len(specialties)} especialidades creadas")
-            print(f"   👨‍⚕️ 3 profesionales creados")
-            print(f"   🧑 {len(patients)} pacientes creados")
-            print(f"   📅 {len(appointments)} citas creadas")
-            print("\n📋 Usuarios de prueba:")
-            print("   🔴 Admin: admin@centro.com / 1234")
-            print("   🔵 Member: juan@centro.com / 1234")
-            print("   ⚪ Limited: ana@centro.com / 1234")
-            print("\n🚀 Ahora puedes ejecutar: python app.py")
-
-        except Exception as e:
-            db.session.rollback()
-            print(f"\n❌ Error al inicializar la base de datos:")
-            print(f"   {str(e)}")
-            import traceback
-            traceback.print_exc()
-            raise
 
 if __name__ == "__main__":
     init_database()

@@ -1,39 +1,48 @@
 from flask import Flask
 from flask_cors import CORS
-from dotenv import load_dotenv
 from config.db_config import db
+from routes.index import register_routes
 import os
+from dotenv import load_dotenv
 
-# Cargar variables desde .env
+# Cargar variables de entorno
 load_dotenv()
 
-def create_app():
-    app = Flask(__name__)
-    CORS(app)
+app = Flask(__name__)
 
-    # Configuración de Base de Datos
-    db_url = os.getenv("DATABASE_URL")
+# Configuración de CORS
+CORS(app, resources={
+    r"/api/*": {
+        "origins": ["http://localhost:5173", "http://localhost:3000"],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": True
+    }
+})
 
-    if not db_url:
-        raise Exception("❌ DATABASE_URL no encontrada en el archivo .env")
+# Configuración de la base de datos - USAR POSTGRESQL
+DATABASE_URL = os.getenv('DATABASE_URL')
+if DATABASE_URL:
+    # PostgreSQL desde .env
+    app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+    print(f"✓ Conectando a PostgreSQL: {DATABASE_URL.split('@')[1].split('/')[0]}")
+else:
+    # SQLite como fallback
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///encuadrado.db'
+    print("⚠ Usando SQLite local (no hay DATABASE_URL en .env)")
 
-    app.config['SQLALCHEMY_DATABASE_URI'] = db_url
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-    # Inicializamos DB
-    db.init_app(app)
+# Inicializar la base de datos
+db.init_app(app)
 
-    # Registrar rutas
-    from routes.index import register_routes
-    register_routes(app)
+# Registrar rutas
+register_routes(app)
 
-    @app.route("/")
-    def home():
-        return {"message": "✅ Backend conectado a Aiven PostgreSQL 🚀"}
+# Crear tablas si no existen
+with app.app_context():
+    db.create_all()
+    print("✓ Tablas verificadas/creadas")
 
-    return app
-
-app = create_app()
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=5000)

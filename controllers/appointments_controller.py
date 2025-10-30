@@ -3,23 +3,52 @@ from models.models import db, Appointment, Patient, Professional, Specialty
 from datetime import datetime
 
 def get_all_appointments():
-    """Obtener todas las citas (Admin)"""
+    """Obtener todas las citas con filtros"""
     try:
-        appointments = Appointment.query.order_by(Appointment.date.desc()).all()
-        return jsonify([a.to_dict() for a in appointments]), 200
+        user_email = request.args.get('user')
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        
+        query = Appointment.query
+        
+        # Filtrar por profesional si es member
+        if user_email:
+            professional = Professional.query.filter_by(email=user_email).first()
+            if professional and professional.role != 'admin':
+                query = query.filter(Appointment.professional_id == professional.id)
+        
+        # Filtrar por rango de fechas
+        if start_date:
+            start = datetime.strptime(start_date, '%Y-%m-%d')
+            query = query.filter(Appointment.date >= start)
+        
+        if end_date:
+            end = datetime.strptime(end_date, '%Y-%m-%d')
+            # Agregar 1 día para incluir todas las horas del último día
+            from datetime import timedelta
+            end = end + timedelta(days=1)
+            query = query.filter(Appointment.date < end)
+        
+        appointments = query.order_by(Appointment.date.asc()).all()
+        return jsonify([apt.to_dict() for apt in appointments]), 200
     except Exception as e:
+        print(f"Error getting appointments: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 def create_appointment_admin():
-    """Crear una cita manualmente (Admin/Member)"""
+    """Crear una cita (Admin o Member)"""
     try:
         data = request.get_json()
         
-        # Validaciones
-        if not all(k in data for k in ['patient_id', 'professional_id', 'specialty_id', 'date']):
-            return jsonify({"error": "Faltan campos requeridos"}), 400
+        # Validar campos requeridos
+        required_fields = ['patient_id', 'professional_id', 'specialty_id', 'date']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({"error": f"Campo requerido: {field}"}), 400
         
-        # Verificar que existan
+        # Validar que existan las entidades
         patient = Patient.query.get(data['patient_id'])
         if not patient:
             return jsonify({"error": "Paciente no encontrado"}), 404
@@ -32,19 +61,13 @@ def create_appointment_admin():
         if not specialty:
             return jsonify({"error": "Especialidad no encontrada"}), 404
         
-        # Parsear fecha
-        appointment_date = datetime.strptime(data['date'], '%Y-%m-%d %H:%M')
-        
-        # Verificar disponibilidad (opcional - implementar lógica)
-        # ...
-        
-        # Crear cita
+        # Crear la cita
         appointment = Appointment(
             patient_id=data['patient_id'],
             professional_id=data['professional_id'],
             specialty_id=data['specialty_id'],
-            date=appointment_date,
-            status='confirmed',
+            date=datetime.fromisoformat(data['date'].replace('Z', '')),
+            status=data.get('status', 'confirmed'),
             notes=data.get('notes', '')
         )
         
@@ -54,10 +77,13 @@ def create_appointment_admin():
         return jsonify(appointment.to_dict()), 201
     except Exception as e:
         db.session.rollback()
+        print(f"Error creating appointment: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 def update_appointment_admin(appointment_id):
-    """Actualizar una cita existente"""
+    """Actualizar una cita (Admin o Member)"""
     try:
         appointment = Appointment.query.get(appointment_id)
         if not appointment:
@@ -65,24 +91,23 @@ def update_appointment_admin(appointment_id):
         
         data = request.get_json()
         
-        # Actualizar campos
+        # Actualizar campos permitidos
         if 'date' in data:
-            appointment.date = datetime.strptime(data['date'], '%Y-%m-%d %H:%M')
+            appointment.date = datetime.fromisoformat(data['date'].replace('Z', ''))
         if 'status' in data:
             appointment.status = data['status']
         if 'notes' in data:
             appointment.notes = data['notes']
-        if 'patient_id' in data:
-            appointment.patient_id = data['patient_id']
-        if 'professional_id' in data:
-            appointment.professional_id = data['professional_id']
-        if 'specialty_id' in data:
-            appointment.specialty_id = data['specialty_id']
+        if 'cancellation_reason' in data:
+            appointment.cancellation_reason = data['cancellation_reason']
         
         db.session.commit()
         return jsonify(appointment.to_dict()), 200
     except Exception as e:
         db.session.rollback()
+        print(f"Error updating appointment: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 def cancel_appointment(appointment_id):
@@ -97,9 +122,10 @@ def cancel_appointment(appointment_id):
         appointment.cancellation_reason = data.get('reason', 'Sin motivo especificado')
         
         db.session.commit()
-        return jsonify({"message": "Cita cancelada"}), 200
+        return jsonify(appointment.to_dict()), 200
     except Exception as e:
         db.session.rollback()
+        print(f"Error cancelling appointment: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 def reschedule_appointment(appointment_id):
@@ -110,38 +136,14 @@ def reschedule_appointment(appointment_id):
             return jsonify({"error": "Cita no encontrada"}), 404
         
         data = request.get_json()
-        new_date = data.get("date")
+        if 'date' not in data:
+            return jsonify({"error": "Nueva fecha requerida"}), 400
         
-        if not new_date:
-            return jsonify({"error": "Fecha requerida"}), 400
-        
-        appointment.date = datetime.strptime(new_date, '%Y-%m-%d %H:%M')
-        appointment.status = 'rescheduled'
+        appointment.date = datetime.fromisoformat(data['date'].replace('Z', ''))
         
         db.session.commit()
         return jsonify(appointment.to_dict()), 200
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": str(e)}), 500
-
-def get_appointments_by_professional(professional_id):
-    """Obtener citas de un profesional específico"""
-    try:
-        appointments = Appointment.query.filter_by(
-            professional_id=professional_id
-        ).order_by(Appointment.date.desc()).all()
-        
-        return jsonify([a.to_dict() for a in appointments]), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-def get_appointments_by_patient(patient_id):
-    """Obtener citas de un paciente específico"""
-    try:
-        appointments = Appointment.query.filter_by(
-            patient_id=patient_id
-        ).order_by(Appointment.date.desc()).all()
-        
-        return jsonify([a.to_dict() for a in appointments]), 200
-    except Exception as e:
+        print(f"Error rescheduling appointment: {str(e)}")
         return jsonify({"error": str(e)}), 500

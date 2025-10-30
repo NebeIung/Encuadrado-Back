@@ -11,7 +11,8 @@ from controllers.appointments_controller import (
 )
 from controllers.professional_controller import (
     get_professionals, get_professional, create_professional,
-    update_professional, delete_professional, assign_specialties
+    update_professional, delete_professional, assign_specialties,
+    update_professional_schedule
 )
 from controllers.patient_controller import (
     get_patients, get_patient, create_patient,
@@ -23,12 +24,11 @@ def register_routes(app):
     app.add_url_rule('/api/login', 'login', login, methods=['POST'])
     
     # =============== DASHBOARD ===============
-    app.add_url_rule('/api/appointments', 'get_appointments', get_appointments, methods=['GET'])
-    app.add_url_rule('/api/appointments/all', 'get_all_appointments', get_all_appointments, methods=['GET'])
+    app.add_url_rule('/api/appointments', 'get_appointments', get_all_appointments, methods=['GET'])
     
     # =============== PUBLIC (Agendamiento Público) ===============
     app.add_url_rule('/api/available-hours', 'get_available_hours', get_available_hours, methods=['GET'])
-    app.add_url_rule('/api/create-appointment', 'create_appointment', create_appointment, methods=['POST'])
+    app.add_url_rule('/api/public/appointment', 'create_appointment_public', create_appointment, methods=['POST'])
     
     # =============== CENTER CONFIG (Admin only) ===============
     app.add_url_rule('/api/center-config', 'get_center_config', get_center_config, methods=['GET'])
@@ -41,7 +41,7 @@ def register_routes(app):
     app.add_url_rule('/api/services/<int:service_id>', 'delete_service', delete_service, methods=['DELETE'])
     
     # =============== APPOINTMENTS MANAGEMENT ===============
-    app.add_url_rule('/api/appointments/create', 'create_appointment_admin', create_appointment_admin, methods=['POST'])
+    app.add_url_rule('/api/appointments', 'create_appointment_admin', create_appointment_admin, methods=['POST'])
     app.add_url_rule('/api/appointments/<int:appointment_id>', 'update_appointment_admin', update_appointment_admin, methods=['PUT'])
     app.add_url_rule('/api/appointments/<int:appointment_id>/cancel', 'cancel_appointment', cancel_appointment, methods=['DELETE'])
     app.add_url_rule('/api/appointments/<int:appointment_id>/reschedule', 'reschedule_appointment', reschedule_appointment, methods=['PUT'])
@@ -53,6 +53,7 @@ def register_routes(app):
     app.add_url_rule('/api/professionals/<int:professional_id>', 'update_professional', update_professional, methods=['PUT'])
     app.add_url_rule('/api/professionals/<int:professional_id>', 'delete_professional', delete_professional, methods=['DELETE'])
     app.add_url_rule('/api/professionals/<int:professional_id>/specialties', 'assign_specialties', assign_specialties, methods=['PUT'])
+    app.add_url_rule('/api/professionals/<int:professional_id>/schedule', 'update_professional_schedule', update_professional_schedule, methods=['PUT'])
     
     # =============== PATIENTS (Admin only) ===============
     app.add_url_rule('/api/patients', 'get_patients', get_patients, methods=['GET'])
