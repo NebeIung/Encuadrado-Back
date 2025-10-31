@@ -61,6 +61,9 @@ venv\Scripts\activate     # Windows
 
 # Ejecutar servidor de desarrollo
 python main.py
+
+# (Opcional) Para reiniciar la base de datos a una instancia inicial
+python init_db.py
 ```
 
 ## 🏗️ Estructura del Proyecto
@@ -115,3 +118,4 @@ Este proyecto es parte de una prueba técnica.
 ---
 
 ⭐️ Desarrollado como parte de la prueba técnica para Encuadrado
+
