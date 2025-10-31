@@ -2,6 +2,7 @@ from flask import Flask
 from flask_cors import CORS
 from config.db_config import db
 from routes.index import register_routes
+from controllers.public_controller import register_public_routes
 import os
 from dotenv import load_dotenv
 
@@ -38,6 +39,7 @@ db.init_app(app)
 
 # Registrar rutas
 register_routes(app)
+register_public_routes(app)
 
 # Crear tablas si no existen
 with app.app_context():

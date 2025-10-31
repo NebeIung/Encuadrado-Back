@@ -9,10 +9,14 @@ def is_valid_hex_color(color):
     return bool(re.match(pattern, color))
 
 def get_services():
-    """Obtener todas las especialidades/servicios con contador de profesionales"""
+    """Obtener todas las especialidades/servicios"""
     try:
+        include_professionals = request.args.get('include_professionals', 'false').lower() == 'true'
+        
         specialties = Specialty.query.all()
-        return jsonify([specialty.to_dict(include_professionals=True) for specialty in specialties]), 200
+        result = [specialty.to_dict(include_professionals=include_professionals) for specialty in specialties]
+        
+        return jsonify(result), 200
     except Exception as e:
         print(f"Error getting services: {str(e)}")
         traceback.print_exc()
@@ -26,7 +30,6 @@ def create_service():
         if not data.get('name') or not data.get('duration') or not data.get('price'):
             return jsonify({"error": "Faltan campos requeridos"}), 400
         
-        # Validar color
         color = data.get('color', '#1976d2')
         if not is_valid_hex_color(color):
             return jsonify({"error": "Color inválido. Debe ser un código hexadecimal (#RRGGBB)"}), 400
@@ -86,11 +89,9 @@ def delete_service(service_id):
         if not service:
             return jsonify({"error": "Servicio no encontrado"}), 404
         
-        # Verificar si hay citas asociadas
         if service.appointments:
             return jsonify({"error": "No se puede eliminar un servicio con citas asociadas"}), 400
         
-        # Verificar si hay profesionales asignados (excluyendo admins)
         non_admin_professionals = [p for p in service.professionals if p.role != 'admin']
         if non_admin_professionals:
             return jsonify({

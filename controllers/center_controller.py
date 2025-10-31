@@ -1,39 +1,48 @@
 from flask import jsonify, request
 from models.models import db, CenterConfig
-import traceback
 
 def get_center_config():
     """Obtener configuración del centro"""
     try:
         config = CenterConfig.query.first()
+        
         if not config:
-            # Crear configuración por defecto si no existe
             config = CenterConfig(
-                name='Centro de Salud Mental',
+                name='Centro de Salud',
                 address='',
                 phone='',
                 email='',
-                description=''
+                description='',
+                vision=''
             )
             db.session.add(config)
             db.session.commit()
         
-        return jsonify(config.to_dict()), 200
+        return jsonify({
+            'id': config.id,
+            'name': config.name,
+            'address': config.address,
+            'phone': config.phone,
+            'email': config.email,
+            'description': config.description,
+            'vision': config.vision,
+            'logo_url': config.logo_url
+        }), 200
+        
     except Exception as e:
-        print(f"Error getting center config: {str(e)}")
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
+        return jsonify({'error': str(e)}), 500
 
 def update_center_config():
     """Actualizar configuración del centro"""
     try:
+        data = request.get_json()
         config = CenterConfig.query.first()
+        
         if not config:
             config = CenterConfig()
             db.session.add(config)
         
-        data = request.get_json()
-        
+        # Actualizar campos
         if 'name' in data:
             config.name = data['name']
         if 'address' in data:
@@ -44,13 +53,27 @@ def update_center_config():
             config.email = data['email']
         if 'description' in data:
             config.description = data['description']
+        if 'vision' in data:
+            config.vision = data['vision']
         if 'logo_url' in data:
             config.logo_url = data['logo_url']
         
         db.session.commit()
-        return jsonify(config.to_dict()), 200
+        
+        return jsonify({
+            'message': 'Configuración actualizada exitosamente',
+            'config': {
+                'id': config.id,
+                'name': config.name,
+                'address': config.address,
+                'phone': config.phone,
+                'email': config.email,
+                'description': config.description,
+                'vision': config.vision,
+                'logo_url': config.logo_url
+            }
+        }), 200
+        
     except Exception as e:
         db.session.rollback()
-        print(f"Error updating center config: {str(e)}")
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
+        return jsonify({'error': str(e)}), 500
