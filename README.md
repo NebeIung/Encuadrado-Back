@@ -10,7 +10,7 @@ Este proyecto es el backend de la aplicación Encuadrado, desarrollado como part
 
 - **Python** (100%)
 - Framework: Flask
-- Base de datos: PostgreSQL hosteada en Aiven
+- Base de datos: PostgreSQL hosteada en Aiven con plan gratuito (demora en cargar módulos en la aplicación)
 - ORM: SQLAlchemy
 
 ## 📋 Requisitos Previos
@@ -118,4 +118,5 @@ Este proyecto es parte de una prueba técnica.
 ---
 
 ⭐️ Desarrollado como parte de la prueba técnica para Encuadrado
+
 
