@@ -78,7 +78,7 @@ Encuadrado-Back/
 │   ├── utils/           # Utilidades
 │   └── config/          # Configuraciones
 ├── requirements.txt     # Dependencias del proyecto
-├── .env.example         # Ejemplo de variables de entorno
+├── .env                 # Variables de entorno
 └── README.md
 ```
 
@@ -116,6 +116,7 @@ Este proyecto es parte de una prueba técnica.
 ---
 
 ⭐️ Desarrollado como parte de la prueba técnica para Encuadrado
+
 
 
 
