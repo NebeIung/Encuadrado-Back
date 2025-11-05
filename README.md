@@ -77,8 +77,6 @@ Encuadrado-Back/
 │   ├── schemas/         # Esquemas de validación
 │   ├── utils/           # Utilidades
 │   └── config/          # Configuraciones
-├── tests/               # Tests unitarios e integración
-├── migrations/          # Migraciones de base de datos
 ├── requirements.txt     # Dependencias del proyecto
 ├── .env.example         # Ejemplo de variables de entorno
 └── README.md
@@ -118,5 +116,6 @@ Este proyecto es parte de una prueba técnica.
 ---
 
 ⭐️ Desarrollado como parte de la prueba técnica para Encuadrado
+
 
 
